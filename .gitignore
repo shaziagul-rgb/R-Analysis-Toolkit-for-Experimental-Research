@@ -1,0 +1,26 @@
+# R / RStudio
+.Rhistory
+.RData
+.Rproj.user/
+*.Rproj
+
+# Operating system
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Raw research data
+# Keep participant-level data out of a public repository unless authorised.
+data/raw/*
+!data/raw/.gitkeep
+
+# Generated reconstructed outputs
+figures/reconstructed/*
+!figures/reconstructed/.gitkeep
+
+# Local result files
+results/*
+!results/.gitkeep
