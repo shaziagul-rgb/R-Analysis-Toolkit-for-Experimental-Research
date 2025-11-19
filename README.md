@@ -1,249 +1,242 @@
-# PhD R Analysis
+# R-Analysis-Toolkit-for-Experimental-Research
 
-R scripts and archived figures from my PhD research.
+An R toolkit for experimental research data: give it a data file and it works
+out the structure, runs a suitable statistical comparison and draws a
+publication-style figure.
 
-This repository has been cleaned and reorganised from the original working
-scripts so that the analysis code is easier to read, maintain, and reuse.
+You do not need to rename columns or edit code. Column names such as `Score`,
+`Method` or `Registration` are **not** required: the tool looks at the shape of
+your data and, if it guesses wrong, lets you name the columns yourself.
 
-## What is included
+> **Status:** written carefully but not yet verified on every machine. Before
+> relying on it, run `Rscript tests/run_tests.R` (see [Testing](#testing)).
 
-- Cleaned R scripts with descriptive names and comments
-- Repository-relative paths using the `here` package
-- Reusable plotting setup and functions
-- Statistical analysis for the paired confidence comparison
-- Archived figures generated during the original PhD analysis
-- Documentation of the original data requirements
+## Contents
 
-## Repository structure
+- [Features](#features)
+- [Requirements](#requirements)
+- [Quick start](#quick-start)
+- [What the tool detects](#what-the-tool-detects)
+- [Statistics used](#statistics-used)
+- [Output files](#output-files)
+- [Options](#options)
+- [Project layout](#project-layout)
+- [Testing](#testing)
+- [Limitations](#limitations)
+- [Gallery: archived PhD figures](#gallery-archived-phd-figures)
+- [Provenance and AI assistance](#provenance-and-ai-assistance)
+- [Licence](#licence)
 
-```text
-.
-├── R/
-│   ├── 00_setup.R
-│   ├── 01_nasa_workload.R
-│   ├── 02_mixed_reality.R
-│   ├── 03_reprojection_by_dataset.R
-│   ├── 04_reprojection_by_crowding.R
-│   ├── 05_confidence_wilcoxon.R
-│   ├── 06_participant_experience.R
-│   └── 07_response_distribution.R
-├── data/
-│   ├── raw/
-│   └── processed/
-├── figures/
-│   ├── original/
-│   └── reconstructed/
-├── results/
-├── docs/
-└── original_scripts/
+## Features
+
+- Reads CSV, TSV, TXT, XLSX and XLS; separators are detected automatically.
+- Detects grouping, outcome and subject columns without fixed column names.
+- Handles long data (one group column + one value column) and wide data
+  (one column per condition).
+- Chooses between parametric and non-parametric tests, and between independent
+  and paired designs, and explains the choice in a report.
+- Reports effect sizes and post hoc comparisons for more than two groups.
+- Colour-blind-safe box plots with individual points, group means and optional
+  significance letters; PNG and PDF output; optional log axis for skewed data.
+- Also handles ready-made percentage tables, categorical-only data and a single
+  numeric column.
+
+## Requirements
+
+- R 4.0 or later
+- `ggplot2` (version 3.3.0 or later) - required
+- `readxl` - optional, only for `.xlsx` / `.xls` files
+- `multcompView` - optional, adds significance letters to plots for more than
+  two groups
+
+```r
+install.packages("ggplot2")
+install.packages(c("readxl", "multcompView"))   # optional
 ```
 
-## Analysis scripts
+## Quick start
 
-| Script | Purpose | Original input |
+**Get the code**
+
+```bash
+git clone https://github.com/shaziagul-rgb/R-Analysis-Toolkit-for-Experimental-Research.git
+```
+
+**RStudio** - open `R-Analysis-Toolkit-for-Experimental-Research.Rproj`, then:
+
+```r
+source("run.R")     # a file chooser opens; detected columns are shown for confirmation
+```
+
+**R console or script:**
+
+```r
+source("R/load.R"); load_project()
+
+analyse("my_data.csv")                                        # fully automatic
+analyse("my_data.xlsx", group = "Treatment", outcome = "Score")
+analyse("my_data.csv", outcome = "all")                       # every numeric column
+analyse("my_data.csv", columns = c("Manual", "Automatic"))    # one column per condition
+```
+
+**Terminal:**
+
+```bash
+Rscript run.R my_data.csv
+Rscript run.R my_data.csv --group Treatment --outcome Score --log-y
+Rscript run.R --help
+```
+
+Run everything from the project folder so that relative paths work.
+
+## What the tool detects
+
+| Your file looks like | What happens |
+|---|---|
+| A category column and a numeric column | The groups are compared |
+| Several numeric columns, no category column | Each column is one condition; rows are treated as the same subject (paired) if every row is complete, otherwise as independent samples |
+| A subject/participant column that appears once in every group | Paired or repeated-measures analysis |
+| One label column and one number column (e.g. percentages) | Bar chart of the values |
+| Only categorical columns | Counts and percentages per category |
+| One numeric column | Histogram and summary statistics |
+
+Detection uses the shape of the data: numeric vs. categorical, number of
+distinct values, repeated IDs. Column names are only weak tie-breakers (for
+example, a column called `Score` is preferred as the outcome over an unnamed
+numeric column). Columns that look like IDs are never used as outcomes.
+
+Decimal commas (`12,5`) and percent signs (`45%`) are converted to numbers.
+If the guess is wrong, name the columns explicitly with `group`, `outcome`,
+`columns` or `id`. A misspelled column name produces an error that suggests the
+closest match.
+
+## Statistics used
+
+| Design | Parametric | Non-parametric |
 |---|---|---|
-| `01_nasa_workload.R` | Overall NASA-TLX workload | `NASA_TLX_ALL.csv` |
-| `02_mixed_reality.R` | Mixed-reality ratings and Tukey HSD | `MR_all.txt` |
-| `03_reprojection_by_dataset.R` | Reprojection error by method | `nn.csv` |
-| `04_reprojection_by_crowding.R` | Reprojection error by crowding condition | `ff1.csv` |
-| `05_confidence_wilcoxon.R` | Manual vs ESAC confidence | `confidence.csv` |
-| `06_participant_experience.R` | AR/VR experience summary | Values recorded in original script |
-| `07_response_distribution.R` | Archived response summary | Values recorded in original script |
+| 2 independent groups | Welch t-test, Cohen's d | Mann-Whitney U, rank-biserial correlation |
+| 2 paired conditions | Paired t-test, Cohen's dz | Wilcoxon signed-rank, rank-biserial correlation |
+| More than 2 independent groups | One-way ANOVA + Tukey HSD, eta-squared | Kruskal-Wallis + pairwise Wilcoxon (Holm), epsilon-squared |
+| More than 2 paired conditions | not implemented | Friedman + pairwise paired Wilcoxon (Holm), Kendall's W |
 
-## Running the analysis
+With `test = "auto"` (the default) the parametric test is used only if
+Shapiro-Wilk does not reject normality (for paired data it is applied to the
+differences) and, for more than two independent groups, the Fligner-Killeen
+test does not reject equal variances. Otherwise the non-parametric test is used.
+Set `test = "parametric"` or `test = "nonparametric"` to override.
 
-Open the repository as an R project and run scripts from the project root.
+This is an automatic first look. For designs with several factors, covariates or
+random effects, use a dedicated model.
 
-First install the required packages:
+## Output files
 
-```r
-install.packages(c(
-  "here",
-  "readr",
-  "dplyr",
-  "ggplot2",
-  "tibble",
-  "agricolae"
-))
-```
+Results go to `outputs/<data file name>/` (change with `outdir`).
 
-Then, for example:
+| Data type | Files |
+|---|---|
+| Group comparison | `groups_<outcome>.png/.pdf`, `_descriptives.csv`, `_test.csv`, `_posthoc.csv` (more than 2 groups), `_report.txt` |
+| Wide layout | same as above, named `groups_comparison...` |
+| Summary table | `bars_<value>.png/.pdf`, `bars_<value>_data.csv` |
+| Categorical only | `frequency_<column>.png/.pdf`, `_table.csv` |
+| Single numeric column | `distribution_<column>.png/.pdf`, `_descriptives.csv` |
 
-```r
-source("R/01_nasa_workload.R")
-```
+The report lists descriptive statistics, assumption checks, the test used and
+why, effect size, post hoc results and any notes (for example, subjects
+excluded because of missing values).
 
-The scripts use paths such as:
+## Options
 
-```r
-here::here("data", "raw", "NASA_TLX_ALL.csv")
-```
+| Argument | Meaning | Default |
+|---|---|---|
+| `path` | Data file; opens a chooser if omitted in an interactive session | none |
+| `group` | Grouping / condition column | detected |
+| `outcome` | Numeric outcome column(s), or `"all"` | detected |
+| `id` | Subject column (enables pairing) | detected |
+| `columns` | Columns that are each one condition (wide layout) | detected |
+| `paired` | `TRUE` / `FALSE` to force the design | detected |
+| `test` | `"auto"`, `"parametric"`, `"nonparametric"` | `"auto"` |
+| `alpha` | Significance level | `0.05` |
+| `p_adjust` | Post hoc adjustment (any `p.adjust` method) | `"holm"` |
+| `group_order` | Order of groups on the x axis | order in the file |
+| `log_y` | Log scale on the y axis | `FALSE` |
+| `show_points` | `"auto"` (shown if at most 150 per group), `TRUE`, `FALSE` | `"auto"` |
+| `title`, `xlab`, `ylab` | Plot text | generated |
+| `sort_bars` | Sort bars by value in bar charts | `FALSE` |
+| `sheet` | Excel sheet name or number | `1` |
+| `outdir` | Output folder | `outputs/<file name>` |
+| `formats` | Figure formats | `c("png", "pdf")` |
+| `confirm` | Ask to confirm detected columns (interactive only) | `TRUE` in interactive sessions |
 
-rather than machine-specific paths such as:
+The same options are documented in the comments above `analyse()` in
+`R/analyse.R`. From the terminal the main ones are `--group`, `--outcome`,
+`--id`, `--columns A,B,C`, `--paired true|false`, `--test`, `--outdir`,
+`--title`, `--xlab`, `--ylab` and `--log-y`.
 
-```text
-/Users/your-name/...
-```
-
-This makes the project portable across computers.
-
-## Archived figures
-
-The original result figures generated during the PhD are preserved in
-[`figures/original/`](figures/original/).
-
-They can also be displayed directly on this GitHub page.
-
-### NASA-TLX workload
-
-![NASA-TLX overall workload](figures/original/nasa_overall_workload.jpg)
-
-### Mixed-reality registration
-
-![Mixed-reality registration](figures/original/mixed_reality_registration.jpeg)
-
-### Mixed-reality plausibility
-
-![Mixed-reality plausibility](figures/original/mixed_reality_plausibility.jpeg)
-
-### Participant AR/VR experience
-
-![Participant AR/VR experience](figures/original/participant_ar_vr_experience.jpeg)
-
-## Reprojection-error results
-
-### Spring
-
-![Spring](figures/original/reprojection_spring.jpeg)
-
-### Summer
-
-![Summer](figures/original/reprojection_summer.jpeg)
-
-### Autumn
-
-![Autumn](figures/original/reprojection_autumn.jpeg)
-
-### Winter
-
-![Winter](figures/original/reprojection_winter.jpeg)
-
-### Day
-
-![Day](figures/original/reprojection_day.jpeg)
-
-### Evening
-
-![Evening](figures/original/reprojection_evening.jpeg)
-
-### Night
-
-![Night](figures/original/reprojection_night.jpeg)
-
-### Empty stadium
-
-![Empty stadium](figures/original/reprojection_empty.jpeg)
-
-### Semi-crowded stadium
-
-![Semi-crowded stadium](figures/original/reprojection_semi_crowded.jpeg)
-
-### Crowded stadium
-
-![Crowded stadium](figures/original/reprojection_crowded.jpeg)
-
-## Data availability
-
-The original participant-level data files used in the PhD analysis are
-currently unavailable. The repository therefore preserves the original
-analysis code and the figures generated during the research.
-
-Some percentages recorded directly in the cleaned analysis scripts are reproduced
-in the archival scripts under `R/06_participant_experience.R` and
-`R/07_response_distribution.R`.
-
-**Important:** archived figures are not regenerated from recovered
-participant-level data. Where the raw data are unavailable, this repository
-does not claim that the original participant-level analysis can currently
-be reproduced.
-
-If the original data are recovered, place authorised and anonymised copies
-in `data/raw/` and rerun the relevant scripts.
-
-## Original scripts
-
-The unmodified scripts supplied from the PhD archive are retained in
-[`original_scripts/`](original_scripts/) for provenance. The cleaned
-versions in `R/` are intended for future use.
-
-## Citation
-
-If these scripts or figures are used in a publication, thesis, presentation,
-or other research output, please cite the associated PhD research and
-repository release where appropriate.
-
-
-## Interactive analysis with your own data
-
-The repository also includes `R/interactive_analysis.R`, which is designed
-for researchers who want to use the workflow with their own dataset.
-
-The script does **not** assume that columns are named `Registration`,
-`WorkLoad`, `Methods`, or any other project-specific name.
-
-Instead, it:
-
-1. Opens a file-selection window.
-2. Lets you choose a CSV, TXT/TSV, XLSX, or XLS file.
-3. Displays the available columns.
-4. Lets you select the grouping/condition column.
-5. Lets you select the numeric outcome column.
-6. Generates a descriptive summary and publication-style boxplot.
-7. Saves the figure to `figures/reconstructed/`.
-8. Saves the summary table to `results/`.
-
-### Example: NASA-TLX
-
-For a NASA-TLX dataset, select:
-
-- **Group / condition column:** the column identifying the experimental
-  condition.
-- **Numeric outcome column:** your overall NASA-TLX workload score.
-
-The actual column names can be anything. For example:
+## Project layout
 
 ```text
-Condition      OverallScore
-A              55
-A              62
-B              41
-B              48
+R-Analysis-Toolkit-for-Experimental-Research/
+├── run.R                 entry point (RStudio or terminal)
+├── R/
+│   ├── load.R            attaches ggplot2 and loads the functions
+│   ├── io.R              file reading and separator detection
+│   ├── detect.R          column and layout detection
+│   ├── stats.R           descriptives, assumption checks, tests, post hoc
+│   ├── plots.R           figures
+│   └── analyse.R         analyse() and report writing
+├── examples/             small synthetic datasets
+├── tests/run_tests.R     smoke tests
+├── gallery/              archived PhD figures (images only)
+└── docs/PROVENANCE.md    where the figures and the code come from
 ```
 
-or:
+## Testing
 
-```text
-Registration   WorkLoad
-AR             55
-AR             62
-VR             41
-VR             48
+The files in `examples/` are **synthetic** (randomly generated). They exist to
+demonstrate and test the tool and are not research data.
+
+```bash
+Rscript tests/run_tests.R                                  # every line should say PASS
+Rscript run.R examples/synthetic_long_3groups.csv
+Rscript run.R examples/synthetic_wide_paired.csv --log-y
+Rscript run.R examples/synthetic_repeated_measures.csv
 ```
 
-Both work because the researcher selects the columns interactively.
+## Limitations
 
-### Run the interactive tool
+- One grouping factor at a time; no mixed models, covariates or multi-factor
+  designs.
+- Repeated measures with more than two conditions use the non-parametric
+  Friedman test only.
+- Shapiro-Wilk is run on an evenly spaced subsample of 5000 values for very
+  large groups.
+- Decimal-comma conversion treats `1,234` as 1.234; check files that use commas
+  as thousands separators.
+- Automatic detection can be wrong for unusual layouts. The detected choice is
+  always printed, so check it before using results.
 
-From RStudio, run:
+## Gallery: archived PhD figures
 
-```r
-source("R/interactive_analysis.R")
-```
+These images are archived outputs from the PhD research. The original analysis
+scripts and participant-level data are no longer available, so these figures
+were **not** produced by the code in this repository and cannot be regenerated
+from it. See [docs/PROVENANCE.md](docs/PROVENANCE.md).
 
-The tool will guide you through the analysis.
+<table>
+<tr><td align="center"><img src="gallery/mixed_reality_plausibility.jpeg" width="280"><br><sub>Mixed reality plausibility</sub></td><td align="center"><img src="gallery/mixed_reality_registration.jpeg" width="280"><br><sub>Mixed reality registration</sub></td><td align="center"><img src="gallery/nasa_overall_workload.jpg" width="280"><br><sub>Nasa overall workload</sub></td></tr>
+<tr><td align="center"><img src="gallery/participant_ar_vr_experience.jpeg" width="280"><br><sub>Participant ar vr experience</sub></td><td align="center"><img src="gallery/reprojection_autumn.jpeg" width="280"><br><sub>Reprojection autumn</sub></td><td align="center"><img src="gallery/reprojection_crowded.jpeg" width="280"><br><sub>Reprojection crowded</sub></td></tr>
+<tr><td align="center"><img src="gallery/reprojection_day.jpeg" width="280"><br><sub>Reprojection day</sub></td><td align="center"><img src="gallery/reprojection_empty.jpeg" width="280"><br><sub>Reprojection empty</sub></td><td align="center"><img src="gallery/reprojection_evening.jpeg" width="280"><br><sub>Reprojection evening</sub></td></tr>
+<tr><td align="center"><img src="gallery/reprojection_night.jpeg" width="280"><br><sub>Reprojection night</sub></td><td align="center"><img src="gallery/reprojection_semi_crowded.jpeg" width="280"><br><sub>Reprojection semi crowded</sub></td><td align="center"><img src="gallery/reprojection_spring.jpeg" width="280"><br><sub>Reprojection spring</sub></td></tr>
+<tr><td align="center"><img src="gallery/reprojection_summer.jpeg" width="280"><br><sub>Reprojection summer</sub></td><td align="center"><img src="gallery/reprojection_winter.jpeg" width="280"><br><sub>Reprojection winter</sub></td></tr>
+</table>
 
-> **Note:** The interactive tool currently provides a general group-comparison
-> workflow. More specialised analyses (for example, Tukey HSD, Wilcoxon tests,
-> repeated-measures models, or method-specific reprojection analyses) should
-> be added as separate modules when their statistical assumptions and required
-> variables are known.
+## Provenance and AI assistance
+
+The code in this repository is a new, general-purpose implementation, developed
+with assistance from AI tools (ChatGPT and Claude). Review it, and confirm the
+automatically chosen statistical test, before using it in research.
+See [docs/PROVENANCE.md](docs/PROVENANCE.md).
+
+## Licence
+
+MIT, see [LICENSE](LICENSE). Replace `<YOUR NAME>` in the licence file with your name.
