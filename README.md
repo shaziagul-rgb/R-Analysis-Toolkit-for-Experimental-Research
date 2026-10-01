@@ -11,21 +11,6 @@ your data and, if it guesses wrong, lets you name the columns yourself.
 > **Status:** written carefully but not yet verified on every machine. Before
 > relying on it, run `Rscript tests/run_tests.R` (see [Testing](#testing)).
 
-## Contents
-
-- [Features](#features)
-- [Requirements](#requirements)
-- [Quick start](#quick-start)
-- [What the tool detects](#what-the-tool-detects)
-- [Statistics used](#statistics-used)
-- [Output files](#output-files)
-- [Options](#options)
-- [Project layout](#project-layout)
-- [Testing](#testing)
-- [Limitations](#limitations)
-- [Gallery: archived PhD figures](#gallery-archived-phd-figures)
-- [Provenance and AI assistance](#provenance-and-ai-assistance)
-- [Licence](#licence)
 
 ## Features
 
@@ -89,44 +74,7 @@ Rscript run.R --help
 
 Run everything from the project folder so that relative paths work.
 
-## What the tool detects
 
-| Your file looks like | What happens |
-|---|---|
-| A category column and a numeric column | The groups are compared |
-| Several numeric columns, no category column | Each column is one condition; rows are treated as the same subject (paired) if every row is complete, otherwise as independent samples |
-| A subject/participant column that appears once in every group | Paired or repeated-measures analysis |
-| One label column and one number column (e.g. percentages) | Bar chart of the values |
-| Only categorical columns | Counts and percentages per category |
-| One numeric column | Histogram and summary statistics |
-
-Detection uses the shape of the data: numeric vs. categorical, number of
-distinct values, repeated IDs. Column names are only weak tie-breakers (for
-example, a column called `Score` is preferred as the outcome over an unnamed
-numeric column). Columns that look like IDs are never used as outcomes.
-
-Decimal commas (`12,5`) and percent signs (`45%`) are converted to numbers.
-If the guess is wrong, name the columns explicitly with `group`, `outcome`,
-`columns` or `id`. A misspelled column name produces an error that suggests the
-closest match.
-
-## Statistics used
-
-| Design | Parametric | Non-parametric |
-|---|---|---|
-| 2 independent groups | Welch t-test, Cohen's d | Mann-Whitney U, rank-biserial correlation |
-| 2 paired conditions | Paired t-test, Cohen's dz | Wilcoxon signed-rank, rank-biserial correlation |
-| More than 2 independent groups | One-way ANOVA + Tukey HSD, eta-squared | Kruskal-Wallis + pairwise Wilcoxon (Holm), epsilon-squared |
-| More than 2 paired conditions | not implemented | Friedman + pairwise paired Wilcoxon (Holm), Kendall's W |
-
-With `test = "auto"` (the default) the parametric test is used only if
-Shapiro-Wilk does not reject normality (for paired data it is applied to the
-differences) and, for more than two independent groups, the Fligner-Killeen
-test does not reject equal variances. Otherwise the non-parametric test is used.
-Set `test = "parametric"` or `test = "nonparametric"` to override.
-
-This is an automatic first look. For designs with several factors, covariates or
-random effects, use a dedicated model.
 
 ## Output files
 
@@ -144,33 +92,7 @@ The report lists descriptive statistics, assumption checks, the test used and
 why, effect size, post hoc results and any notes (for example, subjects
 excluded because of missing values).
 
-## Options
 
-| Argument | Meaning | Default |
-|---|---|---|
-| `path` | Data file; opens a chooser if omitted in an interactive session | none |
-| `group` | Grouping / condition column | detected |
-| `outcome` | Numeric outcome column(s), or `"all"` | detected |
-| `id` | Subject column (enables pairing) | detected |
-| `columns` | Columns that are each one condition (wide layout) | detected |
-| `paired` | `TRUE` / `FALSE` to force the design | detected |
-| `test` | `"auto"`, `"parametric"`, `"nonparametric"` | `"auto"` |
-| `alpha` | Significance level | `0.05` |
-| `p_adjust` | Post hoc adjustment (any `p.adjust` method) | `"holm"` |
-| `group_order` | Order of groups on the x axis | order in the file |
-| `log_y` | Log scale on the y axis | `FALSE` |
-| `show_points` | `"auto"` (shown if at most 150 per group), `TRUE`, `FALSE` | `"auto"` |
-| `title`, `xlab`, `ylab` | Plot text | generated |
-| `sort_bars` | Sort bars by value in bar charts | `FALSE` |
-| `sheet` | Excel sheet name or number | `1` |
-| `outdir` | Output folder | `outputs/<file name>` |
-| `formats` | Figure formats | `c("png", "pdf")` |
-| `confirm` | Ask to confirm detected columns (interactive only) | `TRUE` in interactive sessions |
-
-The same options are documented in the comments above `analyse()` in
-`R/analyse.R`. From the terminal the main ones are `--group`, `--outcome`,
-`--id`, `--columns A,B,C`, `--paired true|false`, `--test`, `--outdir`,
-`--title`, `--xlab`, `--ylab` and `--log-y`.
 
 ## Project layout
 
@@ -202,18 +124,6 @@ Rscript run.R examples/synthetic_wide_paired.csv --log-y
 Rscript run.R examples/synthetic_repeated_measures.csv
 ```
 
-## Limitations
-
-- One grouping factor at a time; no mixed models, covariates or multi-factor
-  designs.
-- Repeated measures with more than two conditions use the non-parametric
-  Friedman test only.
-- Shapiro-Wilk is run on an evenly spaced subsample of 5000 values for very
-  large groups.
-- Decimal-comma conversion treats `1,234` as 1.234; check files that use commas
-  as thousands separators.
-- Automatic detection can be wrong for unusual layouts. The detected choice is
-  always printed, so check it before using results.
 
 ## Gallery: archived PhD figures
 
@@ -230,13 +140,4 @@ from it. See [docs/PROVENANCE.md](docs/PROVENANCE.md).
 <tr><td align="center"><img src="gallery/reprojection_summer.jpeg" width="280"><br><sub>Reprojection summer</sub></td><td align="center"><img src="gallery/reprojection_winter.jpeg" width="280"><br><sub>Reprojection winter</sub></td></tr>
 </table>
 
-## Provenance and AI assistance
 
-The code in this repository is a new, general-purpose implementation, developed
-with assistance from AI tools (ChatGPT and Claude). Review it, and confirm the
-automatically chosen statistical test, before using it in research.
-See [docs/PROVENANCE.md](docs/PROVENANCE.md).
-
-## Licence
-
-MIT, see [LICENSE](LICENSE). Replace `<YOUR NAME>` in the licence file with your name.
