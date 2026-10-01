@@ -8,9 +8,6 @@ You do not need to rename columns or edit code. Column names such as `Score`,
 `Method` or `Registration` are **not** required: the tool looks at the shape of
 your data and, if it guesses wrong, lets you name the columns yourself.
 
-> **Status:** written carefully but not yet verified on every machine. Before
-> relying on it, run `Rscript tests/run_tests.R` (see [Testing](#testing)).
-
 
 ## Features
 
