@@ -14,15 +14,3 @@ produce the archived figures. Earlier versions of this repository contained
 scripts that were reconstructed to resemble the archived plots; those have been
 removed so the repository does not imply that the original analysis can be
 reproduced.
-
-## AI assistance
-
-The tool was developed with assistance from AI systems (ChatGPT, Claude).
-Outputs should be verified by the user, in particular the automatic choice of
-statistical test.
-
-## Data
-
-No research data are included. The files in `examples/` are synthetic. If the
-original data are recovered and you are authorised to share them, keep them
-out of public repositories unless they are anonymised.
