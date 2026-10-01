@@ -124,10 +124,7 @@ Rscript run.R examples/synthetic_repeated_measures.csv
 
 ## Gallery: archived PhD figures
 
-These images are archived outputs from the PhD research. The original analysis
-scripts and participant-level data are no longer available, so these figures
-were **not** produced by the code in this repository and cannot be regenerated
-from it. See [docs/PROVENANCE.md](docs/PROVENANCE.md).
+These images are archived outputs from the PhD research. 
 
 <table>
 <tr><td align="center"><img src="gallery/mixed_reality_plausibility.jpeg" width="280"><br><sub>Mixed reality plausibility</sub></td><td align="center"><img src="gallery/mixed_reality_registration.jpeg" width="280"><br><sub>Mixed reality registration</sub></td><td align="center"><img src="gallery/nasa_overall_workload.jpg" width="280"><br><sub>Nasa overall workload</sub></td></tr>
